@@ -1,0 +1,11 @@
+# Folders
+data
+logs
+models
+sumo-rl
+plots
+roadNetworks
+.vscode
+
+# Files
+test1.py
