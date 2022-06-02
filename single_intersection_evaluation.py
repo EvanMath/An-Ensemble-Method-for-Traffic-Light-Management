@@ -28,24 +28,41 @@ def predict_proba(model, state):
     probs_np = probs.cpu().detach().numpy()    
     return probs_np[0]
 
-def majority_vote(p1, p2, p3):
+def action_probability(model, state):
+    """
+    Takes in a model and an observation. It outputs the probability for each action.
+    It works for DQN.
+    """
+    action_predicted = model.predict(state)[0]
+    exploration_eps = model.exploration_rate
+    exploitation_eps = 1 - exploration_eps
+    probs_np = [exploration_eps/4 for i in range(4)]
+    probs_np[action_predicted] = exploitation_eps + exploration_eps/4
+    return np.array(probs_np)    
+
+def majority_vote(p1, p2, p3=[]):
     """
     Receives as input three actions and outputs the action that receives the most votes.
     In case all action receive 1 vote it outputs a random action.
     """
-    l = [np.argmax(p) for p in [p1, p2, p3]]
-
-    # for _ in range(3):
-    #     if not isinstance(l[_], int):
-    #         l[_] = int(l[_])            
-
-    occurence_count = Counter(l)
-    all_equal = False
+    l = [np.argmax(p) for p in [p1, p2, p3] if len(p) > 1]
 
     if len(set(l)) < 3:
         return max(set(l), key=l.count)
     else:
         return rank_voting(p1, p2, p3)
+
+def majority_vote_1(p1, p2, p3):
+    """
+    Receives as input three actions and outputs the action that receives the most votes.
+    In case all action receive 1 vote it outputs a random action.
+    """
+    l = [np.argmax(p) for p in [p1, p2, p3] if len(p) > 1]
+
+    if len(set(l)) < 3:
+        return max(set(l), key=l.count)
+    else:
+        return np.random.choice(a=l, p=[.1, .75, .15])        
 
 def majority_vote_with_probs(p1, p2, p3):
     '''
@@ -57,30 +74,23 @@ def majority_vote_with_probs(p1, p2, p3):
     a = range(4)
     a1 = np.random.choice(a=a, p=p1)
     a2 = np.random.choice(a=a, p=p2)
-    a3 = np.random.choice(a=a, p=p3)
-    l = [a1, a2, a3]
-    return max(set(l), key=l.count)        
 
-def action_probability(model, state):
-    """
-    Takes in a model and an observation. It outputs the probability for each action.
-    It works for DQN.
-    """
-    action_predicted = model.predict(state)[0]
-    exploration_eps = model.exploration_rate
-    exploitation_eps = 1 - exploration_eps
-    probs_np = [exploration_eps/4 for i in range(4)]
-    probs_np[action_predicted] = exploitation_eps + exploration_eps/4
-    return np.array(probs_np)
+    if len(p3) > 1:
+        a3 = np.random.choice(a=a, p=p3)
+        l = [a1, a2, a3]
+    else:
+        l = [a1, a2]
+
+    return max(set(l), key=l.count)
 
 def rank_voting(p1, p2, p3):
-    soft_vote = np.sum(np.stack((p1, p2, p3)), axis=0)
-    return np.argmax(soft_vote)
 
-# def action_probability_2(model, obs):
-#     obs_tensor, _ = model.q_net.obs_to_tensor(obs)
-#     q_values = model.q_net(obs_tensor)
-#     return np.array(q_values.cpu().detach().numpy())    
+    if len(p3) > 1:
+        soft_vote = np.sum(np.stack((p1, p2, p3)), axis=0)
+    else:
+        soft_vote = np.sum(np.stack((p1, p2)), axis=0)
+    
+    return np.argmax(soft_vote)   
 
 def boltzmann_prob(p1, p2, p3, T=0.5):
     '''
@@ -102,16 +112,17 @@ if __name__ == '__main__':
 
     env = SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
                             route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
-                            out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/ensTrain-MVupd',
+                            out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/ENS1.5M-MV2',
                             single_agent=True,
                             use_gui=False,
-                            num_seconds=100000)                                        
+                            num_seconds=100000,
+                            sumo_seed=42)                                        
 
 
-    # Remeber to load models from May 12
-    model_dqn = DQN.load('/home/talos/MSc_Thesis/models/DQN-05122022 163445/101000')
-    model_ppo = PPO.load('/home/talos/MSc_Thesis/models/PPO-05122022 164805/101000')
-    model_a2c = A2C.load('/home/talos/MSc_Thesis/models/A2C-05122022 165915/101000')
+
+    model_dqn = DQN.load('/home/talos/MSc_Thesis/models/DQN-05312022 144739/DQN1.5M')
+    model_ppo = PPO.load('/home/talos/MSc_Thesis/models/PPO-05312022 170324/PPO1.5M')
+    model_a2c = A2C.load('/home/talos/MSc_Thesis/models/A2C-05312022 165157/A2C1.5M')
 
     EPISODES = 6
 
@@ -121,7 +132,8 @@ if __name__ == '__main__':
 
         while not done:
             env.render()
-            action = majority_vote(action_probability(model_dqn, obs), predict_proba(model_ppo, obs), predict_proba(model_a2c, obs))
+            action = majority_vote(action_probability(model_dqn, obs), predict_proba(model_a2c, obs))
+            # action, _ = model_dqn.predict(obs)
             obs, reward, done, info = env.step(action)
     
     env.close()

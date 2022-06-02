@@ -1,5 +1,6 @@
 import gym
 from stable_baselines3.ppo.ppo import PPO
+from stable_baselines3.common.vec_env import SubprocVecEnv
 import os
 import time
 import sys
@@ -27,16 +28,22 @@ if __name__ == '__main__':
     if not os.path.exists(logdir):
         os.makedirs(logdir) 
 
-    env = SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
-                            route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
-                            out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/ppoPOSREW',
-                            single_agent=True,
-                            use_gui=False,
-                            num_seconds=100000)
+    env = SubprocVecEnv([
+        lambda:SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
+        route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
+        out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/PPO1.5M',
+        single_agent=True,
+        use_gui=False,
+        num_seconds=100000,
+        sumo_seed=42)
+        ])
 
     model = PPO(env=env, policy="MlpPolicy", verbose=1, learning_rate=.001, tensorboard_log=logdir)
 
-    TIMESTEPS = 10100
-    for i in range(1, 11):
-        model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPOposrew")
-        model.save(f"{models_dir}/{TIMESTEPS*i}")
+    TIMESTEPS = 1500000
+    # for i in range(1, 11):
+    #     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPOposrew")
+    #     model.save(f"{models_dir}/{TIMESTEPS*i}")
+
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO1.5M")
+    model.save(f"{models_dir}/PPO1.5M")

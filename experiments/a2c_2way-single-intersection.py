@@ -31,17 +31,28 @@ if __name__ == '__main__':
     if not os.path.exists(logdir):
         os.makedirs(logdir) 
 
-    env = SubprocVecEnv([lambda: SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
-                                        route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
-                                        out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/a2cPOSREW',
-                                        single_agent=True,
-                                        use_gui=False,
-                                        num_seconds=100000,
-                                        min_green=5)])
+    env = SubprocVecEnv([lambda: 
+                        SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
+                        route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
+                        out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/A2C1.5MRMS',
+                        single_agent=True,
+                        use_gui=False,
+                        num_seconds=100000,
+                        min_green=5,
+                        sumo_seed=42)])
 
-    model = A2C("MlpPolicy", env, verbose=1, learning_rate=0.001, tensorboard_log=logdir)
+    model = A2C(policy="MlpPolicy", 
+                env=env, 
+                verbose=1, 
+                learning_rate=0.001,
+                gamma=0.99,
+                # use_rms_prop=False, # use Adam optimizer
+                tensorboard_log=logdir)
     
-    TIMESTEPS = 10100
-    for i in range(1, 11):
-        model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2Cposrew")
-        model.save(f"{models_dir}/{TIMESTEPS*i}")
+    TIMESTEPS = 1500000
+    # for i in range(1, 11):
+    #     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2Cposrew")
+    #     model.save(f"{models_dir}/{TIMESTEPS*i}")
+
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2C1.5MRMS")
+    model.save(f"{models_dir}/A2C1.5MRMS")
