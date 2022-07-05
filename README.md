@@ -10,7 +10,7 @@ Ensemble methods used:
 
 **Reward** is defined as the change of the cumulative vehicle delay $r_{t} = D_{a_{t+1}} - D_{a_{t}}$
 **Action**: Choose the next *Green* phase
-**State Representation**: Vector of dimension $R^{#GreenPhases+2*#Lanes}$
+**State Representation**: Vector of dimension $R^{\#GreenPhases+2*\#Lanes}$
 **Environment**: Simulation of Urban MObility (SUMO)
 
 ## Our Approach
