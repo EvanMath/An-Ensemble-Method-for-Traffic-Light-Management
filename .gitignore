@@ -6,6 +6,8 @@ sumo-rl
 plots
 roadNetworks
 .vscode
+outputs/2way-single-intersection
+Thesis/Thesis Bibliography
 
 # Files
 test1.py

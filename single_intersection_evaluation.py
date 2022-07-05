@@ -12,7 +12,6 @@ import traci
 
 from stable_baselines3 import A2C, PPO, DQN
 from stable_baselines3.common.utils import obs_as_tensor, get_device
-from stable_baselines3.common.distributions import CategoricalDistribution
 from collections import Counter
 import numpy as np
 import torch
@@ -64,7 +63,7 @@ def majority_vote_1(p1, p2, p3):
     else:
         return np.random.choice(a=l, p=[.1, .75, .15])        
 
-def majority_vote_with_probs(p1, p2, p3):
+def majority_vote_with_probs(p1, p2, p3=[]):
     '''
     Takes three different probability vectors in and outputs a randomly sampled 
     action from n_action according to majority voting scheme
@@ -83,27 +82,61 @@ def majority_vote_with_probs(p1, p2, p3):
 
     return max(set(l), key=l.count)
 
-def rank_voting(p1, p2, p3):
+def soft_voting(p1, p2, p3=[], probs=False):
 
     if len(p3) > 1:
         soft_vote = np.sum(np.stack((p1, p2, p3)), axis=0)
     else:
         soft_vote = np.sum(np.stack((p1, p2)), axis=0)
-    
-    return np.argmax(soft_vote)   
+    if not probs:
+        return np.argmax(soft_vote)
+    else:
+        return soft_vote
 
-def boltzmann_prob(p1, p2, p3, T=0.5):
+def rank_voting_1(p1, p2, p3=np.zeros(4), probs=False):
+    p = np.stack((p1, p2, p3), axis=0)
+
+    max_probs = np.max(p, axis=0)
+    best_action = np.argmax(max_probs)
+
+    if not probs:
+        return best_action
+    else:
+        return max_probs
+
+def rank_voting(p1, p2, p3=[], probs=False):
+
+    if len(p3) > 1:
+        for p in [p1, p2, p3]:
+            p_copy = np.sort(p)
+            for i in range(len(p)):
+                p[np.where(p==p_copy[i])] = (i+1)*p_copy[i]
+        soft_vote = np.sum(np.stack((p1, p2, p3)), axis=0)
+    else:
+        soft_vote = np.sum(np.stack((p1, p2)), axis=0)
+    if not probs:
+        return np.argmax(soft_vote)
+    else:
+        return soft_vote        
+
+def average_voting(p1, p2, p3=[], T=0.5):
     '''
-    Takes three different probability vectors in and outputs a randomly sampled 
+    Takes in different probability vectors and outputs a randomly sampled 
     action from n_action with probability equals the average probability of the 
     normalized exponentiated input vectors, with a temperature T controlling
-    the degree of spread for the out vector
+    the degree of spread for the out vector (Boltzmann Probabilities)
     '''
     a = range(4)
-    boltz_ps = [np.exp(prob/T)/sum(np.exp(prob/T)) for prob in [p1, p2, p3]]
-    p = (boltz_ps[0] + boltz_ps[1] + boltz_ps[2])/3
-    p /= np.sum(p)  # To avoid (ValueError: np-random-choice-probabilities-do-not-sum-to-1)[https://stackoverflow.com/questions/46539431/np-random-choice-probabilities-do-not-sum-to-1]
-    a = np.random.choice(a=a, p=p)
+    if len(p3) > 1:
+        boltz_ps = [np.exp(prob/T)/sum(np.exp(prob/T)) for prob in [p1, p2, p3]]
+        p = (boltz_ps[0] + boltz_ps[1] + boltz_ps[2])/3
+        p /= np.sum(p)  # To avoid (ValueError: np-random-choice-probabilities-do-not-sum-to-1)[https://stackoverflow.com/questions/46539431/np-random-choice-probabilities-do-not-sum-to-1]
+        a = np.random.choice(a=a, p=p)
+    else:
+        boltz_ps = [np.exp(prob/T)/sum(np.exp(prob/T)) for prob in [p1, p2]]
+        p = (boltz_ps[0] + boltz_ps[1])/2
+        p /= np.sum(p)  # To avoid (ValueError: np-random-choice-probabilities-do-not-sum-to-1)[https://stackoverflow.com/questions/46539431/np-random-choice-probabilities-do-not-sum-to-1]
+        a = np.random.choice(a=a, p=p)
     return a
 
 
@@ -112,19 +145,21 @@ if __name__ == '__main__':
 
     env = SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
                             route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
-                            out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/ENS1.5M-MV2',
+                            # out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/A2C-trained-5',
                             single_agent=True,
-                            use_gui=False,
+                            use_gui=True,
                             num_seconds=100000,
                             sumo_seed=42)                                        
 
 
 
-    model_dqn = DQN.load('/home/talos/MSc_Thesis/models/DQN-05312022 144739/DQN1.5M')
-    model_ppo = PPO.load('/home/talos/MSc_Thesis/models/PPO-05312022 170324/PPO1.5M')
-    model_a2c = A2C.load('/home/talos/MSc_Thesis/models/A2C-05312022 165157/A2C1.5M')
+    model_dqn = DQN.load('/home/talos/MSc_Thesis/models/DQN-06012022 171843/DQN2M')   # Best performance on predictions DQN-trained-4
+    model_ppo = PPO.load('/home/talos/MSc_Thesis/models/PPO-05122022 164805/101000')    # Best performance on predictions PPO-trained-3
+    model_a2c = A2C.load('/home/talos/MSc_Thesis/models/A2C-05312022 165157/A2C1.5M')  # Best performance on predictions A2C-trained-0
 
-    EPISODES = 6
+
+    # model = A2C.load('/home/talos/MSc_Thesis/models/A2C-06062022 082522/A2C100')
+    EPISODES = 1
 
     for ep in range(EPISODES):
         obs = env.reset()
@@ -132,8 +167,8 @@ if __name__ == '__main__':
 
         while not done:
             env.render()
-            action = majority_vote(action_probability(model_dqn, obs), predict_proba(model_a2c, obs))
-            # action, _ = model_dqn.predict(obs)
+            action = rank_voting(action_probability(model_dqn, obs), predict_proba(model_a2c, obs))
+            # action, _ = model_ppo.predict(obs)
             obs, reward, done, info = env.step(action)
     
     env.close()

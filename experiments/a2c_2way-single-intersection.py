@@ -34,7 +34,7 @@ if __name__ == '__main__':
     env = SubprocVecEnv([lambda: 
                         SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
                         route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
-                        out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/A2C1.5MRMS',
+                        out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/A2C100-pressure',
                         single_agent=True,
                         use_gui=False,
                         num_seconds=100000,
@@ -46,13 +46,13 @@ if __name__ == '__main__':
                 verbose=1, 
                 learning_rate=0.001,
                 gamma=0.99,
-                # use_rms_prop=False, # use Adam optimizer
-                tensorboard_log=logdir)
+                tensorboard_log=logdir,
+                use_rms_prop=False)
     
-    TIMESTEPS = 1500000
-    # for i in range(1, 11):
-    #     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2Cposrew")
+    TIMESTEPS = 100000
+    # for i in range(1, 151):
+    #     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2C1.5M-pressure")
     #     model.save(f"{models_dir}/{TIMESTEPS*i}")
 
-    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2C1.5MRMS")
-    model.save(f"{models_dir}/A2C1.5MRMS")
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="A2C100-pressure")
+    model.save(f"{models_dir}/A2C100")

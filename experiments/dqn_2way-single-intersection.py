@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     env = SumoEnvironment(net_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection.net.xml',
                             route_file='/home/talos/MSc_Thesis/nets/2way-single-intersection/single-intersection-vhvh.rou.xml',
-                            out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/DQN2M',
+                            out_csv_name='/home/talos/MSc_Thesis/outputs/2way-single-intersection/DQN100-pressure',
                             single_agent=True,
                             use_gui=False,
                             num_seconds=100000,
@@ -51,10 +51,10 @@ if __name__ == '__main__':
         verbose=1,
         tensorboard_log=logdir
     )
-    TIMESTEPS = 2000000
+    TIMESTEPS = 100000
     # for i in range(1, 11):
     #     model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="DQNposrew")
     #     model.save(f"{models_dir}/{TIMESTEPS*i}")
 
-    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="DQN2M")
-    model.save(f"{models_dir}/DQN2M")
+    model.learn(total_timesteps=TIMESTEPS, reset_num_timesteps=False, tb_log_name="DQN100-pressure")
+    model.save(f"{models_dir}/DQN100")

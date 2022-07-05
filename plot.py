@@ -1,3 +1,4 @@
+from xmlrpc.client import Boolean
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
@@ -31,7 +32,7 @@ def moving_average(interval, window_size):
     return np.convolve(interval, window, 'same')
 
 
-def plot_df(df, color, xaxis, yaxis, ma=1, label=''):
+def plot_df(df, color, xaxis, yaxis, ma=1, label='', fill_between=False):
     df[yaxis] = pd.to_numeric(df[yaxis], errors='coerce')  # convert NaN string to NaN value
 
     mean = df.groupby(xaxis).mean()[yaxis]
@@ -42,10 +43,12 @@ def plot_df(df, color, xaxis, yaxis, ma=1, label=''):
 
     x = df.groupby(xaxis)[xaxis].mean().keys().values
     plt.plot(x, mean, label=label, color=color, linestyle=next(dashes_styles))
-    plt.fill_between(x, mean + std, mean - std, alpha=0.25, color=color, rasterized=True)
+
+    if fill_between:
+        plt.fill_between(x, mean + std, mean - std, alpha=0.25, color=color, rasterized=True)
     
-    #plt.ylim([0,200])
-    #plt.xlim([40000, 70000])
+    # plt.ylim([mean.min(),mean.max()])
+    # plt.xlim([40000, 70000])
 
 
 if __name__ == '__main__':
@@ -62,6 +65,7 @@ if __name__ == '__main__':
     prs.add_argument('-xlabel', type=str, default='Second', help="X axis label.\n") 
     prs.add_argument('-ylabel', type=str, default='Total waiting time (s)', help="Y axis label.\n")    
     prs.add_argument('-output', type=str, default=None, help="PDF output filename.\n")
+    prs.add_argument('-fill_between', type=bool, default=False, help="Fill between or not.\n")
    
     args = prs.parse_args()
     labels = cycle(args.l) if args.l is not None else cycle([str(i) for i in range(len(args.f))])
@@ -84,12 +88,13 @@ if __name__ == '__main__':
                 yaxis=args.yaxis,
                 label=next(labels),
                 color=next(colors),
-                ma=args.ma)
+                ma=args.ma,
+                fill_between=args.fill_between)
 
     plt.title(args.t)
     plt.ylabel(args.ylabel)
     plt.xlabel(args.xlabel)
-    plt.ylim(bottom=0)
+    # plt.ylim(bottom=0)
     if args.l is not None:
         plt.legend()
 
